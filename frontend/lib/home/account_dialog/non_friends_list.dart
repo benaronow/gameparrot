@@ -38,7 +38,7 @@ class NonFriendsList extends StatelessWidget {
 
     // Get friend UIDs for filtering
     final friendIds =
-        currentUser?.interactions?.map((f) => f.uid).toSet() ?? <String>{};
+        currentUser?.friends?.map((f) => f.uid).toSet() ?? <String>{};
     final currentUserId = currentUser?.uid;
 
     // Filter out friends and current user

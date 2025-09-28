@@ -10,13 +10,13 @@ class MessageService {
   ) {
     if (currentUser == null) return;
 
-    final List<Interaction>? newInteractions = currentUser.interactions?.map((
+    final List<Friend>? newFriends = currentUser.friends?.map((
       f,
     ) {
       if (f.uid == (type == MessageType.receive ? message.from : message.to)) {
         final updatedMessages = List<Message>.from(f.messages);
         updatedMessages.add(message);
-        return Interaction(uid: f.uid, messages: updatedMessages);
+        return Friend(uid: f.uid, messages: updatedMessages);
       } else {
         return f;
       }
@@ -26,7 +26,7 @@ class MessageService {
       uid: currentUser.uid,
       email: currentUser.email,
       online: currentUser.online,
-      interactions: newInteractions ?? [],
+      friends: newFriends ?? [],
       friendRequests: currentUser.friendRequests,
     );
 

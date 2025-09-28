@@ -22,16 +22,16 @@ func handleMessageUpdate(update models.Update) {
 		log.Println("Could not find from user");
 		return;
 	}
-	updatedFromInteractions := make([]models.Interaction, 0, len(fromUser.Interactions))
-	for _, interaction := range fromUser.Interactions {
-		if interaction.UID == update.To {
-			interaction.Messages = append(interaction.Messages, message)
+	updatedFromFriends := make([]models.Friend, 0, len(fromUser.Friends))
+	for _, friend := range fromUser.Friends {
+		if friend.UID == update.To {
+			friend.Messages = append(friend.Messages, message)
 		}
-		updatedFromInteractions = append(updatedFromInteractions, interaction)
+		updatedFromFriends = append(updatedFromFriends, friend)
 	}
 	fromUpdate := bson.M{
 		"$set": bson.M{
-			"interactions": updatedFromInteractions,
+			"friends": updatedFromFriends,
 		},
 	}
 	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.From}, fromUpdate)
@@ -46,16 +46,16 @@ func handleMessageUpdate(update models.Update) {
 		log.Println("Could not find to user");
 		return;
 	}
-	updatedToInteractions := make([]models.Interaction, 0, len(toUser.Interactions))
-	for _, interaction := range toUser.Interactions {
-		if interaction.UID == update.From {
-			interaction.Messages = append(interaction.Messages, message)
+	updatedToFriends := make([]models.Friend, 0, len(toUser.Friends))
+	for _, friend := range toUser.Friends {
+		if friend.UID == update.From {
+			friend.Messages = append(friend.Messages, message)
 		}
-		updatedToInteractions = append(updatedToInteractions, interaction)
+		updatedToFriends = append(updatedToFriends, friend)
 	}
 	toUpdate := bson.M{
 		"$set": bson.M{
-			"interactions": updatedToInteractions,
+			"friends": updatedToFriends,
 		},
 	}
 	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.To}, toUpdate)

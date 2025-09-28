@@ -15,7 +15,7 @@ class FriendService {
       uid: currentUser.uid,
       email: currentUser.email,
       online: currentUser.online,
-      interactions: currentUser.interactions,
+      friends: currentUser.friends,
       friendRequests: newRequests,
     );
 
@@ -34,20 +34,20 @@ class FriendService {
       (r) => r.from == request.from && r.to == request.to,
     );
 
-    final Interaction newInteraction = Interaction(
+    final Friend newFriend = Friend(
       uid: request.from == currentUser.uid ? request.to : request.from,
       messages: [],
     );
-    final List<Interaction> newInteractions = List.from(
-      currentUser.interactions ?? [],
+    final List<Friend> newFriends = List.from(
+      currentUser.friends ?? [],
     );
-    newInteractions.add(newInteraction);
+    newFriends.add(newFriend);
 
     final updatedUser = User(
       uid: currentUser.uid,
       email: currentUser.email,
       online: currentUser.online,
-      interactions: newInteractions,
+      friends: newFriends,
       friendRequests: newRequests,
     );
 

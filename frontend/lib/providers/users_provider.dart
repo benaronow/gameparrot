@@ -20,7 +20,7 @@ class UsersProvider extends ChangeNotifier {
       _users
           ?.where(
             (u) =>
-                _currentUser?.interactions?.any((i) => i.uid == u.uid) ?? false,
+                _currentUser?.friends?.any((i) => i.uid == u.uid) ?? false,
           )
           .toList() ??
       [];

@@ -2,9 +2,9 @@ class TicTacToeGame {
   final String gameId;
   final String playerX;
   final String playerO;
-  final List<String> board; // 9 elements: "", "X", or "O"
-  final String currentTurn; // uid of current player
-  final String winner; // "X", "O", "draw", or ""
+  final List<String> board;
+  final String currentTurn;
+  final String winner;
   final bool isFinished;
 
   TicTacToeGame({
