@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gameparrot/models/friend.dart';
+import 'package:gameparrot/models/message.dart';
 import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/models/user.dart';
 import 'package:gameparrot/models/tictactoe.dart';

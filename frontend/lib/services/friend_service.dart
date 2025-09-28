@@ -1,3 +1,4 @@
+import 'package:gameparrot/models/friend.dart';
 import 'package:gameparrot/models/user.dart';
 
 class FriendService {
@@ -37,6 +38,7 @@ class FriendService {
     final Friend newFriend = Friend(
       uid: request.from == currentUser.uid ? request.to : request.from,
       messages: [],
+      games: [],
     );
     final List<Friend> newFriends = List.from(
       currentUser.friends ?? [],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gameparrot/models/friend.dart';
 import 'package:gameparrot/providers/users_provider.dart';
-import 'package:gameparrot/models/user.dart';
 import 'package:provider/provider.dart';
 import 'friend_request_list_item.dart';
 import 'friend_request_button.dart';
