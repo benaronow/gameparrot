@@ -11,76 +11,49 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func handleStartGameUpdate(update models.Update) {
 	game := updateToGame(update)
 
-	var existing map[string]any
-	err := mongoClient.GameCollection.FindOne(ctx, map[string]any{"gameId": game.GameID}).Decode(&existing)
-	if err == mongo.ErrNoDocuments {
-		_, err := mongoClient.GameCollection.InsertOne(ctx, game)
-		if err != nil {
-			log.Println("Failed to insert game:", err)
-			return
-		}
+	_, err := mongoClient.GameCollection.UpdateOne(
+		ctx,
+		bson.M{"gameId": game.GameID},
+		bson.M{"$setOnInsert": game},
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		log.Println("Failed upserting game:", err)
+		return
 	}
 
-	var fromUser models.User
-	err = mongoClient.UserCollection.FindOne(ctx, map[string]any{"uid": update.From}).Decode(&fromUser)
-	if err == mongo.ErrNoDocuments {
-		log.Println("Could not find from user")
-		return
-	}
-	updatedFromFriends := make([]models.Friend, 0, len(fromUser.Friends))
-	for _, friend := range fromUser.Friends {
-		if friend.UID == update.To {
-			friend.Games = append(friend.Games, game.GameID)
+	type pair struct{ u, f string }
+	for _, p := range []pair{{update.From, update.To}, {update.To, update.From}} {
+		filter := bson.M{"uid": p.u, "friends.uid": p.f}
+		updateDoc := bson.M{"$addToSet": bson.M{"friends.$.games": game.GameID}}
+		if _, uErr := mongoClient.UserCollection.UpdateOne(ctx, filter, updateDoc); uErr != nil {
+			if uErr == mongo.ErrNoDocuments {
+				log.Printf("Friend relationship missing for user %s -> %s while adding game %s", p.u, p.f, game.GameID)
+			} else {
+				log.Println("Failed updating friend games:", uErr)
+			}
 		}
-		updatedFromFriends = append(updatedFromFriends, friend)
-	}
-	fromUpdate := bson.M{
-		"$set": bson.M{
-			"friends": updatedFromFriends,
-		},
-	}
-	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.From}, fromUpdate)
-	if err != nil {
-		log.Println("Could not update from user");
-		return;
-	}
-
-	var toUser models.User
-	err = mongoClient.UserCollection.FindOne(ctx, map[string]any{"uid": update.To}).Decode(&toUser)
-	if err == mongo.ErrNoDocuments {
-		log.Println("Could not find to user")
-		return
-	}
-	updatedToFriends := make([]models.Friend, 0, len(toUser.Friends))
-	for _, friend := range toUser.Friends {
-		if friend.UID == update.From {
-			friend.Games = append(friend.Games, game.GameID)
-		}
-		updatedToFriends = append(updatedToFriends, friend)
-	}
-	toUpdate := bson.M{
-		"$set": bson.M{
-			"friends": updatedToFriends,
-		},
-	}
-	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.To}, toUpdate)
-	if err != nil {
-		log.Println("Could not update to user")
-		return
 	}
 
 	key := fmt.Sprintf("user:%s:online", update.From)
-	err = redis.RedisClient.Set(ctx, key, "1", time.Minute).Err()
-	startGameString, startGameErr := json.Marshal(update)
-	if err != nil || startGameErr != nil {
-		log.Println("Redis set online error:", err)
-	} else {
-		redis.RedisClient.Publish(ctx, "status_channel", "")
-		redis.RedisClient.Publish(ctx, "start_game_channel", startGameString)
+	if rErr := redis.RedisClient.Set(ctx, key, "1", time.Minute).Err(); rErr != nil {
+		log.Println("Redis set online error:", rErr)
+	}
+	payload, mErr := json.Marshal(update)
+	if mErr != nil {
+		log.Println("Marshal start game update failed:", mErr)
+		return
+	}
+	if pubErr := redis.RedisClient.Publish(ctx, "status_channel", ""); pubErr != nil {
+		log.Println("Publish status_channel failed:", pubErr)
+	}
+	if pubErr := redis.RedisClient.Publish(ctx, "start_game_channel", payload); pubErr != nil {
+		log.Println("Publish start_game_channel failed:", pubErr)
 	}
 }

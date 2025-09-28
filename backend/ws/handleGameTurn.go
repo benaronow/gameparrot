@@ -10,39 +10,24 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func handleGameTurnUpdate(update models.Update) {
 	turn := updateToTurn(update)
 
-	var game models.TurnGame
-	err := mongoClient.GameCollection.FindOne(ctx, map[string]any{"gameId": update.GameID}).Decode(&game)
-	if err == mongo.ErrNoDocuments {
-		log.Println("Could not find game")
-		return
-	}
-	game.Turns = append(game.Turns, turn)
-	game.CurrentPlayer = update.To
-	gameUpdate := bson.M{
-		"$set": bson.M{
-			"turns": game.Turns,
-			"currentPlayer": game.CurrentPlayer,
-		},
-	}
-	_, err = mongoClient.GameCollection.UpdateOne(ctx, map[string]any{"gameId": game.GameID}, gameUpdate)
+	if update.GameID == "" { log.Println("Missing GameID in turn update"); return }
+	res, err := mongoClient.GameCollection.UpdateOne(ctx,
+		bson.M{"gameId": update.GameID},
+		bson.M{"$push": bson.M{"turns": turn}, "$set": bson.M{"currentPlayer": update.To}},
+	)
 	if err != nil {
-		log.Println("Could not update game");
-		return;
+		log.Println("Game turn atomic update failed:", err); return
 	}
+	if res.MatchedCount == 0 { log.Println("Could not find game for turn update"); return }
 
 	key := fmt.Sprintf("user:%s:online", update.From)
-	err = redis.RedisClient.Set(ctx, key, "1", time.Minute).Err()
-	gameTurnString, gameTurnErr := json.Marshal(update)
-	if err != nil || gameTurnErr != nil {
-		log.Println("Redis set online error:", err)
-	} else {
-		redis.RedisClient.Publish(ctx, "status_channel", "")
-		redis.RedisClient.Publish(ctx, "game_turn_channel", gameTurnString)
-	}
+	if rErr := redis.RedisClient.Set(ctx, key, "1", time.Minute).Err(); rErr != nil { log.Println("Redis set online error:", rErr) }
+	payload, mErr := json.Marshal(update); if mErr != nil { log.Println("Marshal game turn update failed:", mErr); return }
+	if pubErr := redis.RedisClient.Publish(ctx, "status_channel", ""); pubErr != nil { log.Println("Publish status_channel failed:", pubErr) }
+	if pubErr := redis.RedisClient.Publish(ctx, "game_turn_channel", payload); pubErr != nil { log.Println("Publish game_turn_channel failed:", pubErr) }
 }
