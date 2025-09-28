@@ -61,6 +61,27 @@ class WebSocketService {
     _wsChannel?.sink.add(jsonEncode(msgJson));
   }
 
+  void sendStartGame(String gameType, String from, String to) {
+    final gameJson = {
+      "type": "start_game",
+      "message": gameType,
+      "from": from,
+      "to": to,
+    };
+    _wsChannel?.sink.add(jsonEncode(gameJson));
+  }
+
+  void sendGameTurn(String gameId, String turnInfo, String from, String to) {
+    final turnJson = {
+      "type": "game_turn",
+      "gameId": gameId,
+      "message": turnInfo,
+      "from": from,
+      "to": to,
+    };
+    _wsChannel?.sink.add(jsonEncode(turnJson));
+  }
+
   void sendFriendRequest(String from, String to) {
     final requestJson = {"type": "friend_request", "from": from, "to": to};
     _wsChannel?.sink.add(jsonEncode(requestJson));
