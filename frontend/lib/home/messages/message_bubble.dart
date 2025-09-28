@@ -22,9 +22,10 @@ class MessageBubble extends StatelessWidget {
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutQuad,
           transform: Matrix4.identity()
-            ..translate(
+            ..setTranslationRaw(
               isNewMessage ? (isMe ? 50.0 : -50.0) : 0.0,
               isNewMessage ? 20.0 : 0.0,
+              0.0,
             ),
           child: Container(
             constraints: BoxConstraints(
