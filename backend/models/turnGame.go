@@ -11,9 +11,9 @@ type Turn struct {
 }
 
 type TurnGame struct {
-	GameID string `bson:"game_id" json:"gameId"`
-	GameType GameType `bson:"game_type" json:"gameType"`
+	GameID string `bson:"gameId" json:"gameId"`
+	GameType GameType `bson:"gameType" json:"gameType"`
 	Turns []Turn `bson:"turns" json:"turns"`
-	CurrentPlayer string `bson:"current_player" json:"currentPlayer"`
+	CurrentPlayer string `bson:"currentPlayer" json:"currentPlayer"`
 	Winner string `bson:"winner" json:"winner"`
 }

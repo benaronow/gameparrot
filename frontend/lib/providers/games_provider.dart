@@ -65,6 +65,7 @@ class GamesProvider extends ChangeNotifier {
       _games = updatedGames;
       notifyListeners();
     });
+    debugPrint(_games.toString());
   }
 
   void handleGameTurn(TurnGame turnGame) {

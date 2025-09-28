@@ -1,10 +1,9 @@
 import 'package:gameparrot/models/message.dart';
-import 'package:gameparrot/models/turn_game.dart';
 
 class Friend {
   final String uid;
   final List<Message> messages;
-  final List<TurnGame> games;
+  final List<String> games;
 
   Friend({required this.uid, required this.messages, required this.games});
 
@@ -16,17 +15,19 @@ class Friend {
               ?.map((msg) => Message.fromJson(msg))
               .toList() ??
           [],
-      games: (json['games'] as List<dynamic>?)
-          ?.map((game) => TurnGame.fromJson(game))
-          .toList() ??
-          [],
+      games: (json['games'] is List)
+          ? (json['games'] as List)
+                .where((e) => e != null)
+                .map((e) => e.toString())
+                .toList()
+          : [],
     );
   }
 
   Map<String, dynamic> toJson() => {
     'uid': uid,
     'messages': messages.map((m) => m.toJson()).toList(),
-    'games': games.map((g) => g.toJson()).toList(),
+    'games': games.toList(),
   };
 }
 

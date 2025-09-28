@@ -24,7 +24,6 @@ func handleStartGameUpdate(update models.Update) {
 			log.Println("Failed to insert game:", err)
 			return
 		}
-		log.Println("Game created successfully")
 	}
 
 	var fromUser models.User
@@ -75,7 +74,7 @@ func handleStartGameUpdate(update models.Update) {
 		return
 	}
 
-	key := fmt.Sprintf("user:%s:online", update.To)
+	key := fmt.Sprintf("user:%s:online", update.From)
 	err = redis.RedisClient.Set(ctx, key, "1", time.Minute).Err()
 	startGameString, startGameErr := json.Marshal(update)
 	if err != nil || startGameErr != nil {

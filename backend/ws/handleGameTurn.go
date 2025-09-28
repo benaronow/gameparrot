@@ -36,7 +36,7 @@ func handleGameTurnUpdate(update models.Update) {
 		return;
 	}
 
-	key := fmt.Sprintf("user:%s:online", update.To)
+	key := fmt.Sprintf("user:%s:online", update.From)
 	err = redis.RedisClient.Set(ctx, key, "1", time.Minute).Err()
 	gameTurnString, gameTurnErr := json.Marshal(update)
 	if err != nil || gameTurnErr != nil {

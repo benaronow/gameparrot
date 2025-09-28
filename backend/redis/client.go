@@ -93,8 +93,6 @@ func broadcastStartGame(startGame []byte) {
         log.Println("JSON decode error:", err)
     }
 
-    fmt.Println("Broadcasting start game to:", gameJson.To)
-
     for conn := range Clients {
         if (Clients[conn] == gameJson.To) {
             err := conn.WriteMessage(websocket.TextMessage, startGame)
