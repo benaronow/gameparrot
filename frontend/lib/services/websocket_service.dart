@@ -4,7 +4,9 @@ import 'package:gameparrot/config.dart';
 import 'package:gameparrot/models/turn_game.dart';
 import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/providers/auth_provider.dart';
+import 'package:gameparrot/providers/games_provider.dart';
 import 'package:gameparrot/providers/users_provider.dart';
+import 'package:gameparrot/providers/ws_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -13,25 +15,30 @@ typedef UpdateCallback = void Function(Update update);
 class WebSocketService {
   WebSocketChannel? _wsChannel;
   UpdateCallback? _onUpdate;
+  static WebSocketProvider? _wsProvider;
   static UsersProvider? _usersProvider;
+  static GamesProvider? _gamesProvider;
   static FirebaseAuthProvider? _authProvider;
 
   bool get isConnected => _wsChannel != null;
 
   static Future<void> initialize(BuildContext context) async {
+    _wsProvider = Provider.of<WebSocketProvider>(context, listen: false);
     _usersProvider = Provider.of<UsersProvider>(context, listen: false);
+    _gamesProvider = Provider.of<GamesProvider>(context, listen: false);
     _authProvider = Provider.of<FirebaseAuthProvider>(context, listen: false);
 
     final uid = _authProvider?.uid;
     if (uid != null) {
       await _usersProvider?.getCurrentUser(uid);
-      _initWebSocketsSync(_usersProvider!, uid);
+      _wsProvider?.startWsChannel(uid);
+      _usersProvider?.listenToWS();
     }
   }
 
-  static void _initWebSocketsSync(UsersProvider p, String uid) {
-    p.startWsChannel(uid);
-    p.listenToWS();
+  static void initGamesListener(BuildContext context) {
+    _gamesProvider = Provider.of<GamesProvider>(context, listen: false);
+    _gamesProvider?.listenToWS();
   }
 
   Future<void> startWsChannel(String? uid) async {
@@ -94,10 +101,6 @@ class WebSocketService {
     _wsChannel?.sink.add(jsonEncode(requestJson));
   }
 
-  void sendRaw(String json) {
-    _wsChannel?.sink.add(json);
-  }
-
   void closeWsChannel() {
     _wsChannel?.sink.close();
     _wsChannel = null;
@@ -105,7 +108,8 @@ class WebSocketService {
   }
 
   static void dispose() {
-    _usersProvider?.closeWsChannel();
+    _wsProvider?.closeWsChannel();
+    _wsProvider = null;
     _usersProvider = null;
     _authProvider = null;
   }

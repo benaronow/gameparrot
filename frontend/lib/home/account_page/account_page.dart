@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gameparrot/home/messages/messages.dart';
 import 'package:gameparrot/home/messages/select_conversation.dart';
+import 'package:gameparrot/providers/games_provider.dart';
 import 'package:gameparrot/providers/users_provider.dart';
+import 'package:gameparrot/services/services.dart';
 import 'package:gameparrot/theme.dart';
 import 'package:gameparrot/widgets/widgets.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +18,12 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   bool showMessages = false;
   String? _prevSelectedId;
+
+  @override
+  void initState() {
+    super.initState();
+    WebSocketService.initGamesListener(context);
+  }
 
   void setShowMessages(bool value) {
     setState(() {
@@ -40,6 +48,11 @@ class _AccountPageState extends State<AccountPage> {
   Widget build(BuildContext context) {
     final usersProvider = Provider.of<UsersProvider>(context);
     final friend = usersProvider.selectedFriend;
+    final gamesProvider = Provider.of<GamesProvider>(context);
+    gamesProvider.setGames(
+      usersProvider.currentUser?.uid ?? '',
+      usersProvider.selectedId ?? '',
+    );
 
     if (usersProvider.selectedId == null) {
       return const SelectConversation();

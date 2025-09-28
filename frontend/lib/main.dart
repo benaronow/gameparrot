@@ -5,8 +5,8 @@ import 'package:gameparrot/auth/auth.dart';
 import 'package:gameparrot/providers/auth_provider.dart';
 import 'package:gameparrot/home/home.dart';
 import 'package:gameparrot/providers/users_provider.dart';
+import 'package:gameparrot/providers/ws_provider.dart';
 import 'package:gameparrot/theme.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -46,8 +46,6 @@ class App extends StatefulWidget {
 }
 
 class _MyAppState extends State<App> {
-  late WebSocketChannel channel;
-
   @override
   void initState() {
     super.initState();
@@ -74,9 +72,12 @@ class _MyAppState extends State<App> {
       home: authProvider.uid == null
           ? AuthScreen()
           : Builder(
-              builder: (context) => ChangeNotifierProvider<UsersProvider>(
-                create: (context) => UsersProvider(),
-                child: Home(),
+              builder: (context) => ChangeNotifierProvider<WebSocketProvider>(
+                create: (context) => WebSocketProvider(),
+                child: ChangeNotifierProvider<UsersProvider>(
+                  create: (context) => UsersProvider(),
+                  child: Home(),
+                ),
               ),
             ),
     );

@@ -4,12 +4,10 @@ import 'package:gameparrot/models/message.dart';
 import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/models/user.dart';
 import 'package:gameparrot/services/services.dart';
-import 'package:uuid/uuid.dart';
 
 enum MessageType { send, receive }
 
 class UsersProvider extends ChangeNotifier {
-  var uuid = Uuid();
   final WebSocketService _wsService = WebSocketService();
   User? _currentUser;
   List<User>? _users;
@@ -38,10 +36,6 @@ class UsersProvider extends ChangeNotifier {
   Future<void> getCurrentUser(String? uid) async {
     _currentUser = await UserDataService.getCurrentUser(uid);
     notifyListeners();
-  }
-
-  Future<void> startWsChannel(String? uid) async {
-    await _wsService.startWsChannel(uid);
   }
 
   void listenToWS() {
@@ -76,10 +70,6 @@ class UsersProvider extends ChangeNotifier {
       default:
         break;
     }
-  }
-
-  void closeWsChannel() {
-    _wsService.closeWsChannel();
   }
 
   void handleStatus(List<User> status) {
