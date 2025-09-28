@@ -14,14 +14,10 @@ import (
 )
 
 func handleStartGameUpdate(update models.Update) {
-	game, err := updateToGame(update)
-	if err != nil {
-		log.Println("Could not convert update to game:", err)
-		return
-	}
+	game := updateToGame(update)
 
 	var existing map[string]any
-	err = mongoClient.GameCollection.FindOne(ctx, map[string]any{"gameId": game.GameID}).Decode(&existing)
+	err := mongoClient.GameCollection.FindOne(ctx, map[string]any{"gameId": game.GameID}).Decode(&existing)
 	if err == mongo.ErrNoDocuments {
 		_, err := mongoClient.GameCollection.InsertOne(ctx, game)
 		if err != nil {

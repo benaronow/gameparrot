@@ -3,13 +3,13 @@ import 'package:gameparrot/models/friend.dart';
 import 'package:gameparrot/models/message.dart';
 import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/models/user.dart';
-import 'package:gameparrot/models/tictactoe.dart';
-import 'dart:convert';
 import 'package:gameparrot/services/services.dart';
+import 'package:uuid/uuid.dart';
 
 enum MessageType { send, receive }
 
 class UsersProvider extends ChangeNotifier {
+  var uuid = Uuid();
   final WebSocketService _wsService = WebSocketService();
   User? _currentUser;
   List<User>? _users;
@@ -21,8 +21,7 @@ class UsersProvider extends ChangeNotifier {
   List<User>? get friends =>
       _users
           ?.where(
-            (u) =>
-                _currentUser?.friends?.any((i) => i.uid == u.uid) ?? false,
+            (u) => _currentUser?.friends?.any((i) => i.uid == u.uid) ?? false,
           )
           .toList() ??
       [];
@@ -111,43 +110,21 @@ class UsersProvider extends ChangeNotifier {
     });
   }
 
-  void sendMessage(String messageText, String from, String? to) {
-    if (_currentUser == null || to == null) return;
-
-    final message = MessageService.createMessage(messageText, from, to);
-
+  void sendMessage(String messageText, String from, String to) {
     _wsService.sendMessage(messageText, from, to);
+    final message = MessageService.createMessage(messageText, from, to);
     handleMessage(message, MessageType.send);
-    notifyListeners();
   }
 
   void sendFriendRequest(String from, String to) {
-    if (_currentUser == null) return;
-
-    final request = FriendService.createFriendRequest(from, to);
-
     _wsService.sendFriendRequest(from, to);
+    final request = FriendService.createFriendRequest(from, to);
     handleFriendRequest(request);
   }
 
   void sendFriendAccept(String from, String to) {
-    if (_currentUser == null) return;
-
-    final request = FriendService.createFriendRequest(from, to);
-
     _wsService.sendFriendAccept(from, to);
+    final request = FriendService.createFriendRequest(from, to);
     handleFriendAccept(request);
-  }
-
-  void sendTicTacToeMove(TicTacToeGame game, String from, String to) {
-    final msgJson = {
-      "type": "tictactoe",
-      "from": from,
-      "to": to,
-      "tictactoe": game.toJson(),
-    };
-    _wsService.sendRaw(jsonEncode(msgJson));
-    // Optionally update local state here if needed
-    notifyListeners();
   }
 }

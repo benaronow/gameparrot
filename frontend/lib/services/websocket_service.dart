@@ -61,9 +61,10 @@ class WebSocketService {
     _wsChannel?.sink.add(jsonEncode(msgJson));
   }
 
-  void sendStartGame(String gameType, String from, String to) {
+  void sendStartGame(String gameId,String gameType, String from, String to) {
     final gameJson = {
       "type": "start_game",
+      "gameId": gameId,
       "message": gameType,
       "from": from,
       "to": to,

@@ -18,7 +18,6 @@ class TurnGame {
   final GameType gameType;
   final List<Turn> turns;
   final String currentPlayer;
-  final bool finished;
   final String winner;
 
   TurnGame({
@@ -26,7 +25,6 @@ class TurnGame {
     required this.gameType,
     required this.turns,
     required this.currentPlayer,
-    required this.finished,
     required this.winner,
   });
 
@@ -41,7 +39,6 @@ class TurnGame {
           .map((turn) => Turn.fromJson(turn))
           .toList(),
       currentPlayer: json['currentPlayer'] ?? '',
-      finished: json['finished'] ?? false,
       winner: json['winner'] ?? '',
     );
   }
@@ -51,7 +48,6 @@ class TurnGame {
     'gameType': gameType.toString(),
     'turns': turns.map((turn) => turn.toJson()).toList(),
     'currentPlayer': currentPlayer,
-    'finished': finished,
     'winner': winner,
   };
 }

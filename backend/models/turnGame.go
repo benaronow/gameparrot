@@ -15,6 +15,5 @@ type TurnGame struct {
 	GameType GameType `bson:"game_type" json:"gameType"`
 	Turns []Turn `bson:"turns" json:"turns"`
 	CurrentPlayer string `bson:"current_player" json:"currentPlayer"`
-	Finished bool `bson:"finished" json:"finished"`
 	Winner string `bson:"winner" json:"winner"`
 }
