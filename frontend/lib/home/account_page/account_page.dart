@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gameparrot/home/messages/messages.dart';
 import 'package:gameparrot/home/messages/select_conversation.dart';
+import 'package:gameparrot/models/turn_game.dart';
 import 'package:gameparrot/providers/games_provider.dart';
 import 'package:gameparrot/providers/users_provider.dart';
 import 'package:gameparrot/services/services.dart';
@@ -34,25 +35,36 @@ class _AccountPageState extends State<AccountPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final selectedId = Provider.of<UsersProvider>(context).selectedId;
+    final usersProvider = Provider.of<UsersProvider>(context);
+    final gamesProvider = Provider.of<GamesProvider>(context);
 
-    if (_prevSelectedId != selectedId) {
+    if (_prevSelectedId != usersProvider.selectedId) {
       setState(() {
         showMessages = false;
-        _prevSelectedId = selectedId;
+        _prevSelectedId = usersProvider.selectedId;
       });
+      gamesProvider.setGames(
+        usersProvider.currentUser?.uid ?? '',
+        usersProvider.selectedId ?? '',
+      );
     }
+  }
+
+  void _handleStartGame() {
+    final usersProvider = Provider.of<UsersProvider>(context, listen: false);
+    final gamesProvider = Provider.of<GamesProvider>(context, listen: false);
+
+    gamesProvider.sendStartGame(
+      GameType.ticTacToe,
+      usersProvider.currentUser!.uid,
+      usersProvider.selectedId!,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final usersProvider = Provider.of<UsersProvider>(context);
     final friend = usersProvider.selectedFriend;
-    final gamesProvider = Provider.of<GamesProvider>(context);
-    gamesProvider.setGames(
-      usersProvider.currentUser?.uid ?? '',
-      usersProvider.selectedId ?? '',
-    );
 
     if (usersProvider.selectedId == null) {
       return const SelectConversation();
@@ -113,6 +125,23 @@ class _AccountPageState extends State<AccountPage> {
                 icon: const Icon(Icons.message),
                 label: const Text('View Messages'),
                 onPressed: () => setState(() => showMessages = true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.message),
+                label: const Text('Start Game'),
+                onPressed: _handleStartGame,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,

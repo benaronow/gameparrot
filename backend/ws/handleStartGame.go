@@ -25,14 +25,6 @@ func handleStartGameUpdate(update models.Update) {
 			return
 		}
 		log.Println("Game created successfully")
-		return
-	}
-
-	log.Println("Game already exists")
-	
-	if err != nil {
-		log.Println("Could not convert update to game:", err)
-		return
 	}
 
 	var fromUser models.User

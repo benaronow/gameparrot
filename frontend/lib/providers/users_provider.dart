@@ -8,10 +8,12 @@ import 'package:gameparrot/services/services.dart';
 enum MessageType { send, receive }
 
 class UsersProvider extends ChangeNotifier {
-  final WebSocketService _wsService = WebSocketService();
+  final WebSocketService _wsService;
+  UsersProvider(this._wsService);
   User? _currentUser;
   List<User>? _users;
   String? _selectedId;
+  bool _listening = false;
 
   User? get currentUser => _currentUser;
   List<User>? get users => _users ?? [];
@@ -39,7 +41,9 @@ class UsersProvider extends ChangeNotifier {
   }
 
   void listenToWS() {
-    _wsService.listenToWS(_handleUpdate);
+    if (_listening) return;
+    _wsService.registerListener(_handleUpdate);
+    _listening = true;
   }
 
   void _handleUpdate(Update update) {

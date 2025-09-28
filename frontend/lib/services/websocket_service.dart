@@ -14,7 +14,7 @@ typedef UpdateCallback = void Function(Update update);
 
 class WebSocketService {
   WebSocketChannel? _wsChannel;
-  UpdateCallback? _onUpdate;
+  final List<UpdateCallback> _listeners = [];
   static WebSocketProvider? _wsProvider;
   static UsersProvider? _usersProvider;
   static GamesProvider? _gamesProvider;
@@ -51,11 +51,32 @@ class WebSocketService {
     if (uid != null) _wsChannel?.sink.add(uid);
   }
 
-  void listenToWS(UpdateCallback onUpdate) {
-    _onUpdate = onUpdate;
-    _wsChannel?.stream.listen((message) {
-      final Update update = Update.fromJson(jsonDecode(message));
-      _onUpdate?.call(update);
+  void registerListener(UpdateCallback listener) {
+    if (!_listeners.contains(listener)) {
+      _listeners.add(listener);
+    }
+    // Ensure subscription started
+    _ensureListening();
+  }
+
+  void unregisterListener(UpdateCallback listener) {
+    _listeners.remove(listener);
+  }
+
+  void _ensureListening() {
+    // If no channel or already has a stream listener attached (web_socket_channel handles multiple
+    // listen calls by throwing for single-subscription), just return if we previously attached.
+    if (_streamAttached || _wsChannel == null) return;
+    _streamAttached = true;
+    _wsChannel!.stream.listen((message) {
+      try {
+        final Update update = Update.fromJson(jsonDecode(message));
+        for (final cb in List<UpdateCallback>.from(_listeners)) {
+          cb(update);
+        }
+      } catch (e, st) {
+        debugPrint('WebSocket message handling error: $e\n$st');
+      }
     });
   }
 
@@ -101,10 +122,13 @@ class WebSocketService {
     _wsChannel?.sink.add(jsonEncode(requestJson));
   }
 
+  static bool _streamAttached = false;
+
   void closeWsChannel() {
     _wsChannel?.sink.close();
     _wsChannel = null;
-    _onUpdate = null;
+    _listeners.clear();
+    _streamAttached = false;
   }
 
   static void dispose() {

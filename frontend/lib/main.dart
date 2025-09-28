@@ -5,7 +5,9 @@ import 'package:gameparrot/auth/auth.dart';
 import 'package:gameparrot/providers/auth_provider.dart';
 import 'package:gameparrot/home/home.dart';
 import 'package:gameparrot/providers/users_provider.dart';
+import 'package:gameparrot/providers/games_provider.dart';
 import 'package:gameparrot/providers/ws_provider.dart';
+import 'package:gameparrot/services/services.dart';
 import 'package:gameparrot/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -31,9 +33,30 @@ void main() async {
   }
 
   runApp(
-    ChangeNotifierProvider<FirebaseAuthProvider>(
-      create: (context) => FirebaseAuthProvider(),
-      child: App(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<FirebaseAuthProvider>(
+          create: (_) => FirebaseAuthProvider(),
+        ),
+        // Provide a single WebSocketService instance
+        Provider<WebSocketService>(
+          create: (_) => WebSocketService(),
+          dispose: (_, svc) => svc.closeWsChannel(),
+        ),
+        ChangeNotifierProxyProvider<WebSocketService, WebSocketProvider>(
+          create: (ctx) => WebSocketProvider(ctx.read<WebSocketService>()),
+          update: (ctx, svc, prev) => prev ?? WebSocketProvider(svc),
+        ),
+        ChangeNotifierProxyProvider<WebSocketService, UsersProvider>(
+          create: (ctx) => UsersProvider(ctx.read<WebSocketService>()),
+          update: (ctx, svc, prev) => prev ?? UsersProvider(svc),
+        ),
+        ChangeNotifierProxyProvider<WebSocketService, GamesProvider>(
+          create: (ctx) => GamesProvider(ctx.read<WebSocketService>()),
+          update: (ctx, svc, prev) => prev ?? GamesProvider(svc),
+        ),
+      ],
+      child: const App(),
     ),
   );
 }
@@ -69,17 +92,7 @@ class _MyAppState extends State<App> {
     return MaterialApp(
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      home: authProvider.uid == null
-          ? AuthScreen()
-          : Builder(
-              builder: (context) => ChangeNotifierProvider<WebSocketProvider>(
-                create: (context) => WebSocketProvider(),
-                child: ChangeNotifierProvider<UsersProvider>(
-                  create: (context) => UsersProvider(),
-                  child: Home(),
-                ),
-              ),
-            ),
+      home: authProvider.uid == null ? const AuthScreen() : const Home(),
     );
   }
 }

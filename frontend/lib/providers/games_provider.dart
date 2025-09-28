@@ -7,9 +7,11 @@ import 'package:uuid/uuid.dart';
 
 class GamesProvider extends ChangeNotifier {
   var uuid = Uuid();
-  final WebSocketService _wsService = WebSocketService();
+  final WebSocketService _wsService;
+  GamesProvider(this._wsService);
   String? _currentGameId;
   List<TurnGame>? _games;
+  bool _listening = false;
 
   String? get currentGameId => _currentGameId;
   List<TurnGame>? get games => _games ?? [];
@@ -25,7 +27,9 @@ class GamesProvider extends ChangeNotifier {
   }
 
   void listenToWS() {
-    _wsService.listenToWS(_handleUpdate);
+    if (_listening) return;
+    _wsService.registerListener(_handleUpdate);
+    _listening = true;
   }
 
   void _handleUpdate(Update update) {
