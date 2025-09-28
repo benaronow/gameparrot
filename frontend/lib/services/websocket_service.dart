@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:gameparrot/config.dart';
+import 'package:gameparrot/models/turn_game.dart';
 import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/providers/auth_provider.dart';
 import 'package:gameparrot/providers/users_provider.dart';
@@ -61,11 +62,11 @@ class WebSocketService {
     _wsChannel?.sink.add(jsonEncode(msgJson));
   }
 
-  void sendStartGame(String gameId,String gameType, String from, String to) {
+  void sendStartGame(String gameId, GameType gameType, String from, String to) {
     final gameJson = {
       "type": "start_game",
       "gameId": gameId,
-      "message": gameType,
+      "message": gameType.toString(),
       "from": from,
       "to": to,
     };

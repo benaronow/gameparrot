@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gameparrot/models/turn_game.dart';
+import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/services/services.dart';
 import 'package:gameparrot/services/turn_game_service.dart';
 import 'package:uuid/uuid.dart';
@@ -18,25 +19,71 @@ class GamesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> getGames(List<String> gids) async {
-    _games = await TurnGameService.getGames(gids);
+  Future<void> setGames(String uid, String fid) async {
+    _games = await TurnGameService.getGames(uid, fid);
     notifyListeners();
   }
 
-  // void handleTurnGame(TurnGame turnGame) {
-  //   TurnGameService.handleTurnGame(_currentUser, turnGame, (updatedUser) {
-  //     _currentUser = updatedUser;
-  //     notifyListeners();
-  //   });
-  // }
+  void listenToWS() {
+    _wsService.listenToWS(_handleUpdate);
+  }
 
-  // void sendStartGame(String gameType, String from, String to) {
-  //   _wsService.sendStartGame(uuid.v1().toString(), gameType, from, to);
-  // }
+  void _handleUpdate(Update update) {
+    switch (update.type) {
+      case "start_game":
+        handleStartGame(
+          TurnGameService.createNewTurnGame(
+            update.gameId ?? '',
+            GameType.values.firstWhere(
+              (e) => e.toString().split('.').last == (update.message ?? ''),
+              orElse: () => GameType.values.first,
+            ),
+            update.to ?? '',
+          ),
+        );
+        break;
+      case "game_turn":
+        handleGameTurn(
+          TurnGameService.updateExistingTurnGame(
+            _games!.firstWhere((g) => g.gameId == update.gameId),
+            update.message ?? '',
+            update.from ?? '',
+          ),
+        );
+        break;
+      default:
+        break;
+    }
+  }
 
-  // void sendGameTurn(String gameId, List<String> turns, String from, String to) {
-  //   _wsService.sendGameTurn(gameId, turns.last, from, to);
-  //   final turnGame = TurnGameService().createTurnGame(gameId, turns, from, to);
-  // }
-  
+  void handleStartGame(TurnGame turnGame) {
+    TurnGameService.handleStartGame(_games, turnGame, (updatedGames) {
+      _games = updatedGames;
+      notifyListeners();
+    });
+  }
+
+  void handleGameTurn(TurnGame turnGame) {
+    TurnGameService.handleGameTurn(_games, turnGame, (updatedGames) {
+      _games = updatedGames;
+      notifyListeners();
+    });
+  }
+
+  void sendStartGame(GameType gameType, String from, String to) {
+    var gameId = uuid.v1().toString();
+    _wsService.sendStartGame(gameId, gameType, from, to);
+    final turnGame = TurnGameService.createNewTurnGame(gameId, gameType, to);
+    handleStartGame(turnGame);
+  }
+
+  void sendGameTurn(String gameId, List<String> turns, String from, String to) {
+    _wsService.sendGameTurn(gameId, turns.last, from, to);
+    final turnGame = TurnGameService.updateExistingTurnGame(
+      games!.firstWhere((g) => g.gameId == gameId),
+      turns.last,
+      from,
+    );
+    handleGameTurn(turnGame);
+  }
 }

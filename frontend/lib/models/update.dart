@@ -6,7 +6,7 @@ class Update {
   final String? to;
   final String? message;
   final List<User>? status;
-  final Map<String, dynamic>? tictactoe;
+  final String? gameId;
 
   Update({
     required this.type,
@@ -14,7 +14,7 @@ class Update {
     this.to,
     this.message,
     this.status,
-    this.tictactoe,
+    this.gameId,
   });
 
   factory Update.fromJson(Map<String, dynamic> json) {
@@ -28,7 +28,7 @@ class Update {
                 .map((userJson) => User.fromJson(userJson))
                 .toList()
           : null,
-      tictactoe: json['tictactoe'],
+      gameId: json['gameId'],
     );
   }
 }
