@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'account_header.dart';
 import 'start_game_sheet.dart';
 import 'current_games_list.dart';
+import 'package:gameparrot/home/games/tictactoe/tictactoe_placeholder.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -92,7 +93,7 @@ class _AccountPageState extends State<AccountPage> {
       return Messages(close: () => setShowMessages(false));
     }
     final gamesProvider = Provider.of<GamesProvider>(context);
-    final games = gamesProvider.games ?? [];
+    final games = gamesProvider.games;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -114,7 +115,33 @@ class _AccountPageState extends State<AccountPage> {
             games: games,
             onOpenGame: (id) {
               gamesProvider.setCurrentGameId(id);
-              // TODO: Navigate to dedicated game screen.
+              final current = gamesProvider.games.firstWhere(
+                (g) => g.gameId == id,
+              );
+              if (current.gameType == GameType.ticTacToe) {
+                Navigator.of(context).push(
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) =>
+                        TicTacToeGameScreen(gameId: id),
+                    transitionsBuilder: (_, animation, __, child) {
+                      final curved = CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeInOutCubic,
+                      );
+                      return FadeTransition(
+                        opacity: curved,
+                        child: ScaleTransition(
+                          scale: Tween<double>(
+                            begin: .94,
+                            end: 1,
+                          ).animate(curved),
+                          child: child,
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }
             },
           ),
         ],

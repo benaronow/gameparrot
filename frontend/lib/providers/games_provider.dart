@@ -14,7 +14,7 @@ class GamesProvider extends ChangeNotifier {
   bool _listening = false;
 
   String? get currentGameId => _currentGameId;
-  List<TurnGame>? get games => _games ?? [];
+  List<TurnGame> get games => _games ?? [];
 
   void setCurrentGameId(String? id) {
     _currentGameId = id;
@@ -52,6 +52,7 @@ class GamesProvider extends ChangeNotifier {
             _games!.firstWhere((g) => g.gameId == update.gameId),
             update.message ?? '',
             update.from ?? '',
+            update.to ?? '',
           ),
         );
         break;
@@ -82,12 +83,13 @@ class GamesProvider extends ChangeNotifier {
     handleStartGame(turnGame);
   }
 
-  void sendGameTurn(String gameId, List<String> turns, String from, String to) {
-    _wsService.sendGameTurn(gameId, turns.last, from, to);
+  void sendGameTurn(String gameId, String turnInfo, String from, String to) {
+    _wsService.sendGameTurn(gameId, turnInfo, from, to);
     final turnGame = TurnGameService.updateExistingTurnGame(
-      games!.firstWhere((g) => g.gameId == gameId),
-      turns.last,
+      games.firstWhere((g) => g.gameId == gameId),
+      turnInfo,
       from,
+      to,
     );
     handleGameTurn(turnGame);
   }

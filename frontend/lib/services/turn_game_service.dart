@@ -64,16 +64,55 @@ class TurnGameService {
     TurnGame currentGame,
     String turnInfo,
     String from,
+    String to,
   ) {
+    final updatedTurns = [
+      ...currentGame.turns,
+      Turn(player: from, turnInfo: turnInfo),
+    ];
+
+    String winner = currentGame.winner;
+
+    if (winner.isEmpty && currentGame.gameType == GameType.ticTacToe) {
+      // Build board mapping player -> set of coords
+      final Map<String, Set<String>> playerMoves = {};
+      for (final t in updatedTurns) {
+        playerMoves.putIfAbsent(t.player, () => <String>{}).add(t.turnInfo);
+      }
+      // All winning lines in our coordinate system (columns a-c, rows 1-3)
+      const winningLines = [
+        // Rows
+        ['ax1', 'bx1', 'cx1'],
+        ['ax2', 'bx2', 'cx2'],
+        ['ax3', 'bx3', 'cx3'],
+        // Columns
+        ['ax1', 'ax2', 'ax3'],
+        ['bx1', 'bx2', 'bx3'],
+        ['cx1', 'cx2', 'cx3'],
+        // Diagonals
+        ['ax1', 'bx2', 'cx3'],
+        ['cx1', 'bx2', 'ax3'],
+      ];
+      for (final entry in playerMoves.entries) {
+        for (final line in winningLines) {
+          if (line.every(entry.value.contains)) {
+            winner = entry.key;
+            break;
+          }
+        }
+        if (winner.isNotEmpty) break;
+      }
+    }
+
+    // If winner determined, do not change currentPlayer anymore.
+    final nextPlayer = winner.isNotEmpty ? currentGame.currentPlayer : to;
+
     return TurnGame(
       gameId: currentGame.gameId,
       gameType: currentGame.gameType,
-      turns: [
-        ...currentGame.turns,
-        Turn(player: from, turnInfo: turnInfo),
-      ],
-      currentPlayer: currentGame.currentPlayer,
-      winner: currentGame.winner,
+      turns: updatedTurns,
+      currentPlayer: nextPlayer,
+      winner: winner,
     );
   }
 }
