@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'account_header.dart';
 import 'start_game_sheet.dart';
 import 'current_games_list.dart';
-import 'package:gameparrot/home/games/tictactoe/tictactoe_placeholder.dart';
+import 'package:gameparrot/home/games/tictactoe/tictactoe_game_screen.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});

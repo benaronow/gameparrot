@@ -22,6 +22,7 @@ func updateToGame(update models.Update) models.TurnGame {
 		GameID: update.GameID,
 		GameType: models.GameType(update.Message),
 		Turns: []models.Turn{},
+		Initiator: update.From,
 		CurrentPlayer: update.To,
 		Winner: "",
 	}

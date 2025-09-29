@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:gameparrot/config.dart';
+import 'package:gameparrot/home/games/tictactoe/tictactoe_utils.dart';
 import 'package:gameparrot/models/turn_game.dart';
 import 'package:http/http.dart' as http;
 
@@ -49,12 +50,14 @@ class TurnGameService {
   static TurnGame createNewTurnGame(
     String gameId,
     GameType gameType,
+    String from,
     String to,
   ) {
     return TurnGame(
       gameId: gameId,
       gameType: gameType,
       turns: [],
+      initiator: from,
       currentPlayer: to,
       winner: '',
     );
@@ -71,48 +74,19 @@ class TurnGameService {
       Turn(player: from, turnInfo: turnInfo),
     ];
 
-    String winner = currentGame.winner;
+    final updatedWinner = getWinner(currentGame, updatedTurns);
 
-    if (winner.isEmpty && currentGame.gameType == GameType.ticTacToe) {
-      // Build board mapping player -> set of coords
-      final Map<String, Set<String>> playerMoves = {};
-      for (final t in updatedTurns) {
-        playerMoves.putIfAbsent(t.player, () => <String>{}).add(t.turnInfo);
-      }
-      // All winning lines in our coordinate system (columns a-c, rows 1-3)
-      const winningLines = [
-        // Rows
-        ['ax1', 'bx1', 'cx1'],
-        ['ax2', 'bx2', 'cx2'],
-        ['ax3', 'bx3', 'cx3'],
-        // Columns
-        ['ax1', 'ax2', 'ax3'],
-        ['bx1', 'bx2', 'bx3'],
-        ['cx1', 'cx2', 'cx3'],
-        // Diagonals
-        ['ax1', 'bx2', 'cx3'],
-        ['cx1', 'bx2', 'ax3'],
-      ];
-      for (final entry in playerMoves.entries) {
-        for (final line in winningLines) {
-          if (line.every(entry.value.contains)) {
-            winner = entry.key;
-            break;
-          }
-        }
-        if (winner.isNotEmpty) break;
-      }
-    }
-
-    // If winner determined, do not change currentPlayer anymore.
-    final nextPlayer = winner.isNotEmpty ? currentGame.currentPlayer : to;
+    final nextPlayer = updatedWinner.isNotEmpty
+        ? currentGame.currentPlayer
+        : to;
 
     return TurnGame(
       gameId: currentGame.gameId,
       gameType: currentGame.gameType,
       turns: updatedTurns,
+      initiator: currentGame.initiator,
       currentPlayer: nextPlayer,
-      winner: winner,
+      winner: updatedWinner,
     );
   }
 }

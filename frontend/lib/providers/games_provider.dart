@@ -42,6 +42,7 @@ class GamesProvider extends ChangeNotifier {
               (e) => e.toString().split('.').last == (update.message ?? ''),
               orElse: () => GameType.values.first,
             ),
+            update.from ?? '',
             update.to ?? '',
           ),
         );
@@ -66,7 +67,6 @@ class GamesProvider extends ChangeNotifier {
       _games = updatedGames;
       notifyListeners();
     });
-    debugPrint(_games.toString());
   }
 
   void handleGameTurn(TurnGame turnGame) {
@@ -79,7 +79,12 @@ class GamesProvider extends ChangeNotifier {
   void sendStartGame(GameType gameType, String from, String to) {
     var gameId = uuid.v1().toString();
     _wsService.sendStartGame(gameId, gameType, from, to);
-    final turnGame = TurnGameService.createNewTurnGame(gameId, gameType, to);
+    final turnGame = TurnGameService.createNewTurnGame(
+      gameId,
+      gameType,
+      from,
+      to,
+    );
     handleStartGame(turnGame);
   }
 

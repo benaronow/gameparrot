@@ -17,6 +17,7 @@ class TurnGame {
   final String gameId;
   final GameType gameType;
   final List<Turn> turns;
+  final String initiator;
   final String currentPlayer;
   final String winner;
 
@@ -24,6 +25,7 @@ class TurnGame {
     required this.gameId,
     required this.gameType,
     required this.turns,
+    required this.initiator,
     required this.currentPlayer,
     required this.winner,
   });
@@ -38,6 +40,7 @@ class TurnGame {
       turns: (json['turns'] as List<dynamic>)
           .map((turn) => Turn.fromJson(turn))
           .toList(),
+      initiator: json['initiator'] ?? '',
       currentPlayer: json['currentPlayer'] ?? '',
       winner: json['winner'] ?? '',
     );
@@ -47,6 +50,7 @@ class TurnGame {
     'gameId': gameId,
     'gameType': gameType.toString(),
     'turns': turns.map((turn) => turn.toJson()).toList(),
+    'initiator': initiator,
     'currentPlayer': currentPlayer,
     'winner': winner,
   };
