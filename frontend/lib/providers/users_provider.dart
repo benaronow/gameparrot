@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:gameparrot/models/friend.dart';
+import 'package:gameparrot/models/message.dart';
 import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/models/user.dart';
-import 'package:gameparrot/models/tictactoe.dart';
-import 'dart:convert';
 import 'package:gameparrot/services/services.dart';
 
 enum MessageType { send, receive }
 
 class UsersProvider extends ChangeNotifier {
-  final WebSocketService _wsService = WebSocketService();
+  final WebSocketService _wsService;
+  UsersProvider(this._wsService);
   User? _currentUser;
   List<User>? _users;
   String? _selectedId;
+  bool _listening = false;
 
   User? get currentUser => _currentUser;
   List<User>? get users => _users ?? [];
@@ -19,8 +21,7 @@ class UsersProvider extends ChangeNotifier {
   List<User>? get friends =>
       _users
           ?.where(
-            (u) =>
-                _currentUser?.interactions?.any((i) => i.uid == u.uid) ?? false,
+            (u) => _currentUser?.friends?.any((i) => i.uid == u.uid) ?? false,
           )
           .toList() ??
       [];
@@ -39,12 +40,10 @@ class UsersProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> startWsChannel(String? uid) async {
-    await _wsService.startWsChannel(uid);
-  }
-
   void listenToWS() {
-    _wsService.listenToWS(_handleUpdate);
+    if (_listening) return;
+    _wsService.registerListener(_handleUpdate);
+    _listening = true;
   }
 
   void _handleUpdate(Update update) {
@@ -77,10 +76,6 @@ class UsersProvider extends ChangeNotifier {
     }
   }
 
-  void closeWsChannel() {
-    _wsService.closeWsChannel();
-  }
-
   void handleStatus(List<User> status) {
     UserDataService.handleStatus(status, (users) {
       _users = users;
@@ -109,43 +104,21 @@ class UsersProvider extends ChangeNotifier {
     });
   }
 
-  void sendMessage(String messageText, String from, String? to) {
-    if (_currentUser == null || to == null) return;
-
-    final message = MessageService.createMessage(messageText, from, to);
-
+  void sendMessage(String messageText, String from, String to) {
     _wsService.sendMessage(messageText, from, to);
+    final message = MessageService.createMessage(messageText, from, to);
     handleMessage(message, MessageType.send);
-    notifyListeners();
   }
 
   void sendFriendRequest(String from, String to) {
-    if (_currentUser == null) return;
-
-    final request = FriendService.createFriendRequest(from, to);
-
     _wsService.sendFriendRequest(from, to);
+    final request = FriendService.createFriendRequest(from, to);
     handleFriendRequest(request);
   }
 
   void sendFriendAccept(String from, String to) {
-    if (_currentUser == null) return;
-
-    final request = FriendService.createFriendRequest(from, to);
-
     _wsService.sendFriendAccept(from, to);
+    final request = FriendService.createFriendRequest(from, to);
     handleFriendAccept(request);
-  }
-
-  void sendTicTacToeMove(TicTacToeGame game, String from, String to) {
-    final msgJson = {
-      "type": "tictactoe",
-      "from": from,
-      "to": to,
-      "tictactoe": game.toJson(),
-    };
-    _wsService.sendRaw(jsonEncode(msgJson));
-    // Optionally update local state here if needed
-    notifyListeners();
   }
 }

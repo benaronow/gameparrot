@@ -60,11 +60,8 @@ class AppTheme {
 
         surface: surfaceColor,
         onSurface: textPrimary,
-        surfaceVariant: cardColor,
+        surfaceContainerHighest: cardColor,
         onSurfaceVariant: textSecondary,
-
-        background: backgroundColor,
-        onBackground: textPrimary,
 
         error: errorColor,
         onError: textOnPrimary,
@@ -253,14 +250,14 @@ class AppTheme {
       dividerTheme: const DividerThemeData(color: dividerColor, thickness: 1),
 
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryColor;
           }
           return Colors.grey;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryLight;
           }
           return Colors.grey.shade300;

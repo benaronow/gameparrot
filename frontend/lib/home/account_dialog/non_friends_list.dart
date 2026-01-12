@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gameparrot/models/friend.dart';
 import 'package:gameparrot/providers/users_provider.dart';
-import 'package:gameparrot/models/user.dart';
 import 'package:provider/provider.dart';
 import 'friend_request_list_item.dart';
 import 'friend_request_button.dart';
@@ -38,7 +38,7 @@ class NonFriendsList extends StatelessWidget {
 
     // Get friend UIDs for filtering
     final friendIds =
-        currentUser?.interactions?.map((f) => f.uid).toSet() ?? <String>{};
+        currentUser?.friends?.map((f) => f.uid).toSet() ?? <String>{};
     final currentUserId = currentUser?.uid;
 
     // Filter out friends and current user

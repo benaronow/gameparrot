@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:gameparrot/config.dart';
+import 'package:gameparrot/models/turn_game.dart';
 import 'package:gameparrot/models/update.dart';
 import 'package:gameparrot/providers/auth_provider.dart';
+import 'package:gameparrot/providers/games_provider.dart';
 import 'package:gameparrot/providers/users_provider.dart';
+import 'package:gameparrot/providers/ws_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -11,26 +14,31 @@ typedef UpdateCallback = void Function(Update update);
 
 class WebSocketService {
   WebSocketChannel? _wsChannel;
-  UpdateCallback? _onUpdate;
+  final List<UpdateCallback> _listeners = [];
+  static WebSocketProvider? _wsProvider;
   static UsersProvider? _usersProvider;
+  static GamesProvider? _gamesProvider;
   static FirebaseAuthProvider? _authProvider;
 
   bool get isConnected => _wsChannel != null;
 
   static Future<void> initialize(BuildContext context) async {
+    _wsProvider = Provider.of<WebSocketProvider>(context, listen: false);
     _usersProvider = Provider.of<UsersProvider>(context, listen: false);
+    _gamesProvider = Provider.of<GamesProvider>(context, listen: false);
     _authProvider = Provider.of<FirebaseAuthProvider>(context, listen: false);
 
     final uid = _authProvider?.uid;
     if (uid != null) {
       await _usersProvider?.getCurrentUser(uid);
-      _initWebSocketsSync(_usersProvider!, uid);
+      _wsProvider?.startWsChannel(uid);
+      _usersProvider?.listenToWS();
     }
   }
 
-  static void _initWebSocketsSync(UsersProvider p, String uid) {
-    p.startWsChannel(uid);
-    p.listenToWS();
+  static void initGamesListener(BuildContext context) {
+    _gamesProvider = Provider.of<GamesProvider>(context, listen: false);
+    _gamesProvider?.listenToWS();
   }
 
   Future<void> startWsChannel(String? uid) async {
@@ -43,11 +51,32 @@ class WebSocketService {
     if (uid != null) _wsChannel?.sink.add(uid);
   }
 
-  void listenToWS(UpdateCallback onUpdate) {
-    _onUpdate = onUpdate;
-    _wsChannel?.stream.listen((message) {
-      final Update update = Update.fromJson(jsonDecode(message));
-      _onUpdate?.call(update);
+  void registerListener(UpdateCallback listener) {
+    if (!_listeners.contains(listener)) {
+      _listeners.add(listener);
+    }
+    // Ensure subscription started
+    _ensureListening();
+  }
+
+  void unregisterListener(UpdateCallback listener) {
+    _listeners.remove(listener);
+  }
+
+  void _ensureListening() {
+    // If no channel or already has a stream listener attached (web_socket_channel handles multiple
+    // listen calls by throwing for single-subscription), just return if we previously attached.
+    if (_streamAttached || _wsChannel == null) return;
+    _streamAttached = true;
+    _wsChannel!.stream.listen((message) {
+      try {
+        final Update update = Update.fromJson(jsonDecode(message));
+        for (final cb in List<UpdateCallback>.from(_listeners)) {
+          cb(update);
+        }
+      } catch (e, st) {
+        debugPrint('WebSocket message handling error: $e\n$st');
+      }
     });
   }
 
@@ -61,6 +90,28 @@ class WebSocketService {
     _wsChannel?.sink.add(jsonEncode(msgJson));
   }
 
+  void sendStartGame(String gameId, GameType gameType, String from, String to) {
+    final gameJson = {
+      "type": "start_game",
+      "gameId": gameId,
+      "message": gameType.toString(),
+      "from": from,
+      "to": to,
+    };
+    _wsChannel?.sink.add(jsonEncode(gameJson));
+  }
+
+  void sendGameTurn(String gameId, String turnInfo, String from, String to) {
+    final turnJson = {
+      "type": "game_turn",
+      "gameId": gameId,
+      "message": turnInfo,
+      "from": from,
+      "to": to,
+    };
+    _wsChannel?.sink.add(jsonEncode(turnJson));
+  }
+
   void sendFriendRequest(String from, String to) {
     final requestJson = {"type": "friend_request", "from": from, "to": to};
     _wsChannel?.sink.add(jsonEncode(requestJson));
@@ -71,18 +122,18 @@ class WebSocketService {
     _wsChannel?.sink.add(jsonEncode(requestJson));
   }
 
-  void sendRaw(String json) {
-    _wsChannel?.sink.add(json);
-  }
+  static bool _streamAttached = false;
 
   void closeWsChannel() {
     _wsChannel?.sink.close();
     _wsChannel = null;
-    _onUpdate = null;
+    _listeners.clear();
+    _streamAttached = false;
   }
 
   static void dispose() {
-    _usersProvider?.closeWsChannel();
+    _wsProvider?.closeWsChannel();
+    _wsProvider = null;
     _usersProvider = null;
     _authProvider = null;
   }

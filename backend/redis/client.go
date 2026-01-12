@@ -31,13 +31,17 @@ func InitRedis() {
 }
 
 func StartRedisSubscriber() {
-    sub := RedisClient.Subscribe(ctx, "message_channel", "friend_request_channel", "friend_accept_channel", "status_channel")
+    sub := RedisClient.Subscribe(ctx, "message_channel", "start_game_channel", "game_turn_channel", "friend_request_channel", "friend_accept_channel", "status_channel")
     ch := sub.Channel()
 
     for msg := range ch {
         switch msg.Channel {
         case "message_channel":
             broadcastMessage([]byte(msg.Payload))
+        case "start_game_channel":
+            broadcastStartGame([]byte(msg.Payload))
+        case "game_turn_channel":
+            broadcastGameTurn([]byte(msg.Payload))
         case "friend_request_channel":
             broadcastFriendRequest([]byte(msg.Payload))
         case "friend_accept_channel":
@@ -71,6 +75,48 @@ func broadcastMessage(message []byte) {
     for conn := range Clients {
         if (Clients[conn] == msgJson.To) {
             err := conn.WriteMessage(websocket.TextMessage, message)
+            if err != nil {
+                log.Println("Broadcast error:", err)
+                conn.Close()
+                delete(Clients, conn)
+            }
+        }
+    }
+}
+
+func broadcastStartGame(startGame []byte) {
+    ClientsMux.Lock()
+    defer ClientsMux.Unlock()
+
+    var gameJson models.Update
+    if err := json.Unmarshal(startGame, &gameJson); err != nil {
+        log.Println("JSON decode error:", err)
+    }
+
+    for conn := range Clients {
+        if (Clients[conn] == gameJson.To) {
+            err := conn.WriteMessage(websocket.TextMessage, startGame)
+            if err != nil {
+                log.Println("Broadcast error:", err)
+                conn.Close()
+                delete(Clients, conn)
+            }
+        }
+    }
+}
+
+func broadcastGameTurn(turn []byte) {
+    ClientsMux.Lock()
+    defer ClientsMux.Unlock()
+
+    var turnJson models.Update
+    if err := json.Unmarshal(turn, &turnJson); err != nil {
+        log.Println("JSON decode error:", err)
+    }
+
+    for conn := range Clients {
+        if (Clients[conn] == turnJson.To) {
+            err := conn.WriteMessage(websocket.TextMessage, turn)
             if err != nil {
                 log.Println("Broadcast error:", err)
                 conn.Close()

@@ -45,7 +45,7 @@ class _HomeState extends State<Home> {
                 if (isMobile && selectedId == null)
                   Expanded(child: UserList())
                 else
-                  Expanded(child: AccountPage()),
+                  const Expanded(child: AccountPage()),
               ],
             ),
           ),

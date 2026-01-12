@@ -30,6 +30,7 @@ func main() {
     http.HandleFunc("/auth", middleware.WithCORS(routes.AuthHandler))
     http.HandleFunc("/register", middleware.WithCORS(routes.RegisterHandler))
 	http.HandleFunc("/currentUser", middleware.WithCORS(routes.CurrentUserHandler))
+	http.HandleFunc("/games", middleware.WithCORS(routes.GamesHandler))
 	http.HandleFunc("/ws", middleware.WithCORS(ws.HandleWSConnection))
 	
     fmt.Println("WebSocket server running at :8080/ws")

@@ -16,61 +16,22 @@ import (
 func handleMessageUpdate(update models.Update) {
 	message := updateToMessage(update);
 
-	var fromUser models.User
-	err := mongoClient.UserCollection.FindOne(ctx, map[string]any{"uid": update.From}).Decode(&fromUser)
-	if err == mongo.ErrNoDocuments {
-		log.Println("Could not find from user");
-		return;
+	if _, err := mongoClient.UserCollection.UpdateOne(ctx,
+		bson.M{"uid": update.From, "friends.uid": update.To},
+		bson.M{"$push": bson.M{"friends.$.messages": message}},
+	); err != nil {
+		if err == mongo.ErrNoDocuments { log.Println("Could not find from user or friend relation") } else { log.Println("Message update (from) failed:", err) }
 	}
-	updatedFromInteractions := make([]models.Interaction, 0, len(fromUser.Interactions))
-	for _, interaction := range fromUser.Interactions {
-		if interaction.UID == update.To {
-			interaction.Messages = append(interaction.Messages, message)
-		}
-		updatedFromInteractions = append(updatedFromInteractions, interaction)
-	}
-	fromUpdate := bson.M{
-		"$set": bson.M{
-			"interactions": updatedFromInteractions,
-		},
-	}
-	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.From}, fromUpdate)
-	if err != nil {
-		log.Println("Could not update from user");
-		return;
-	}
-
-	var toUser models.User
-	err = mongoClient.UserCollection.FindOne(ctx, map[string]any{"uid": update.To}).Decode(&toUser)
-	if err == mongo.ErrNoDocuments {
-		log.Println("Could not find to user");
-		return;
-	}
-	updatedToInteractions := make([]models.Interaction, 0, len(toUser.Interactions))
-	for _, interaction := range toUser.Interactions {
-		if interaction.UID == update.From {
-			interaction.Messages = append(interaction.Messages, message)
-		}
-		updatedToInteractions = append(updatedToInteractions, interaction)
-	}
-	toUpdate := bson.M{
-		"$set": bson.M{
-			"interactions": updatedToInteractions,
-		},
-	}
-	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.To}, toUpdate)
-	if err != nil {
-		log.Println("Could not update to user");
-		return;
+	if _, err := mongoClient.UserCollection.UpdateOne(ctx,
+		bson.M{"uid": update.To, "friends.uid": update.From},
+		bson.M{"$push": bson.M{"friends.$.messages": message}},
+	); err != nil {
+		if err == mongo.ErrNoDocuments { log.Println("Could not find to user or friend relation") } else { log.Println("Message update (to) failed:", err) }
 	}
 	
 	key := fmt.Sprintf("user:%s:online", update.From)
-	err = redis.RedisClient.Set(ctx, key, "1", time.Minute).Err()
-	messageString, messageErr := json.Marshal(update);
-	if err != nil || messageErr != nil {
-		log.Println("Redis set online error:", err)
-	} else {
-		redis.RedisClient.Publish(ctx, "status_channel", "")
-		redis.RedisClient.Publish(ctx, "message_channel", messageString)
-	}
+	if rErr := redis.RedisClient.Set(ctx, key, "1", time.Minute).Err(); rErr != nil { log.Println("Redis set online error:", rErr) }
+	payload, mErr := json.Marshal(update); if mErr != nil { log.Println("Marshal message update failed:", mErr); return }
+	if pubErr := redis.RedisClient.Publish(ctx, "status_channel", ""); pubErr != nil { log.Println("Publish status_channel failed:", pubErr) }
+	if pubErr := redis.RedisClient.Publish(ctx, "message_channel", payload); pubErr != nil { log.Println("Publish message_channel failed:", pubErr) }
 }

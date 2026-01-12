@@ -41,11 +41,11 @@ class _MessageAreaState extends State<MessageArea> {
     super.didChangeDependencies();
     final usersProvider = Provider.of<UsersProvider>(context);
     final selectedId = usersProvider.selectedId;
-    final interactions = usersProvider.currentUser?.interactions ?? [];
-    final interaction = interactions
+    final friends = usersProvider.currentUser?.friends ?? [];
+    final friend = friends
         .where((f) => f.uid == selectedId)
         .firstOrNull;
-    final currentMessageCount = interaction?.messages.length ?? 0;
+    final currentMessageCount = friend?.messages.length ?? 0;
 
     if (currentMessageCount > _previousMessageCount) {
       _previousMessageCount = currentMessageCount;
@@ -57,11 +57,11 @@ class _MessageAreaState extends State<MessageArea> {
   Widget build(BuildContext context) {
     final usersProvider = Provider.of<UsersProvider>(context);
     final messages =
-        usersProvider.currentUser?.interactions
+        usersProvider.currentUser?.friends
             ?.where(
-              (interaction) => interaction.uid == usersProvider.selectedId,
+              (friend) => friend.uid == usersProvider.selectedId,
             )
-            .map((interaction) => interaction.messages)
+            .map((friend) => friend.messages)
             .expand((msgList) => msgList)
             .toList() ??
         [];

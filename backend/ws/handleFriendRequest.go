@@ -16,49 +16,22 @@ import (
 func handleFriendRequestUpdate(update models.Update) {
 	friendRequest := updateToFriendRequest(update)
 
-	var fromUser models.User
-	err := mongoClient.UserCollection.FindOne(ctx, map[string]any{"uid": update.From}).Decode(&fromUser)
-	if err == mongo.ErrNoDocuments {
-		log.Println("Could not find from user")
-		return
+	updateDoc := bson.M{"$addToSet": bson.M{"friend_requests": friendRequest}}
+	if _, err := mongoClient.UserCollection.UpdateOne(ctx, bson.M{"uid": update.From}, updateDoc); err != nil {
+		if err == mongo.ErrNoDocuments { log.Println("Could not find from user"); return }
+		log.Println("Friend request update (from user) failed:", err); return
 	}
-	fromUser.FriendRequests = append(fromUser.FriendRequests, friendRequest)
-	fromUpdate := bson.M{
-		"$set": bson.M{
-			"friend_requests": fromUser.FriendRequests,
-		},
-	}
-	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.From}, fromUpdate)
-	if err != nil {
-		log.Println("Could not update from user")
-		return
-	}
-
-	var toUser models.User
-	err = mongoClient.UserCollection.FindOne(ctx, map[string]any{"uid": update.To}).Decode(&toUser)
-	if err == mongo.ErrNoDocuments {
-		log.Println("Could not find to user")
-		return
-	}
-	toUser.FriendRequests = append(toUser.FriendRequests, friendRequest)
-	toUpdate := bson.M{
-		"$set": bson.M{
-			"friend_requests": toUser.FriendRequests,
-		},
-	}
-	_, err = mongoClient.UserCollection.UpdateOne(ctx, map[string]any{"uid": update.To}, toUpdate)
-	if err != nil {
-		log.Println("Could not update to user")
-		return
+	if _, err := mongoClient.UserCollection.UpdateOne(ctx, bson.M{"uid": update.To}, updateDoc); err != nil {
+		if err == mongo.ErrNoDocuments { log.Println("Could not find to user"); return }
+		log.Println("Friend request update (to user) failed:", err); return
 	}
 
 	key := fmt.Sprintf("user:%s:online", update.From)
-	err = redis.RedisClient.Set(ctx, key, "1", time.Minute).Err()
-	friendRequestString, friendRequestErr := json.Marshal(update);
-	if err != nil || friendRequestErr != nil {
-		log.Println("Redis set online error:", err)
-	} else {
-		redis.RedisClient.Publish(ctx, "status_channel", "")
-		redis.RedisClient.Publish(ctx, "friend_request_channel", friendRequestString)
+	if rErr := redis.RedisClient.Set(ctx, key, "1", time.Minute).Err(); rErr != nil {
+		log.Println("Redis set online error:", rErr)
 	}
+	payload, mErr := json.Marshal(update)
+	if mErr != nil { log.Println("Marshal friend request update failed:", mErr); return }
+	if pubErr := redis.RedisClient.Publish(ctx, "status_channel", ""); pubErr != nil { log.Println("Publish status_channel failed:", pubErr) }
+	if pubErr := redis.RedisClient.Publish(ctx, "friend_request_channel", payload); pubErr != nil { log.Println("Publish friend_request_channel failed:", pubErr) }
 }

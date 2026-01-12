@@ -17,6 +17,24 @@ func updateToMessage(update models.Update) models.Message {
 	}
 }
 
+func updateToGame(update models.Update) models.TurnGame {
+	return models.TurnGame{
+		GameID: update.GameID,
+		GameType: models.GameType(update.Message),
+		Turns: []models.Turn{},
+		Initiator: update.From,
+		CurrentPlayer: update.To,
+		Winner: "",
+	}
+}
+
+func updateToTurn(update models.Update) models.Turn {
+	return models.Turn{
+		Player:  update.From,
+		TurnInfo: update.Message,
+	}
+}
+
 func updateToFriendRequest(update models.Update) models.FriendRequest {
 	return models.FriendRequest{
 		From: update.From,

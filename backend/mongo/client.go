@@ -9,7 +9,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var UserCollection *mongo.Collection
+var (
+	UserCollection *mongo.Collection
+	GameCollection *mongo.Collection
+)
 
 func InitMongo() {
 	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI"))
@@ -18,4 +21,5 @@ func InitMongo() {
 		log.Fatalf("MongoDB connection error: %v", err)
 	}
 	UserCollection = client.Database("gameparrot").Collection("User")
+	GameCollection = client.Database("gameparrot").Collection("Game")
 }
